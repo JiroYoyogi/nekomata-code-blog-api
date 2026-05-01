@@ -259,18 +259,8 @@ export const handler = async (event) => {
   const requestApiKey =
     headers['x-api-key'] || headers['X-Api-Key'] || headers['X-API-KEY'];
 
-  // チェック
-  if (requestApiKey === API_KEY) {
-    return {
-      isAuthorized: true,
-      context: {
-        message: 'Authorized',
-      },
-    };
-  }
-
   return {
-    isAuthorized: false,
+    isAuthorized: requestApiKey === API_KEY,
   };
 };
 ```
@@ -314,8 +304,29 @@ export const handler = async (event) => {
 
 ## AWS SAMのテンプレート紹介
 
+【差分】
+
 - [Notion SDK](https://makenotion-notion-sdk-js.mintlify.app/introduction)でAPIリクエスト
 - JS → TS
+
+【手順】
+
+- [こちらのリポジトリ](https://github.com/JiroYoyogi/nekomata-code-blog-api-sam)でコードをDL
+- `src/`に移動して`npm install`
+- `cd ..`でプロジェクト直下に戻る
+- `sam build`
+- `sam deploy --guided`
+
+【デプロイ時の設定】
+
+```
+Stack Name：nekomata-code-blog-api
+AWS Region：ap-northeast-1
+Stage：dev （stgやprdなどでもOK）
+NotionDatabaseId：該当のNotionデータベースID
+NotionApiKey：作成したアクセストークン
+AwsApiKey：nekomata-code
+```
 
 ## フロントからAPIGWにリクエストする
 
