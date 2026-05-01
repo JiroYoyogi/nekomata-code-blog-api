@@ -430,23 +430,23 @@ npm run build
 
 ### ディストリビューションを作成
 
-- Choose a plan
-
-まずは無料でOK！
+- Choose a plan：`Pay as you go`
 
 ```
 - 無料（月100万リクエストまで無料。毎日1人3ページ閲覧で約1800ユーザーまで）
 - Pro（月1000万リクエストまで無料。毎日1人3ページ閲覧で約1.8万ユーザーまで）
-- Pay as you go
-```
 
 どれをを選択しても同じ設定画面に進む。無料プラン・ProプランはWAF（IP制限機能・DDoS対策など）が無料で付く。
+しかし、削除手順が煩雑（月末まで削除出来ない・WebACLを手動で削除）。お試しなら「Pay as you go」が迷わない。
+
+```
 
 - Distribution name：`nekomata-code-blog`
 - Distribution type：`Single website or app`
 - Origin type：`Amazon S3`
 - S3 origin：`上記で作成したバケットを選択`
 - Origin path：`空でOK`
+- Web Application Firewall (WAF) ：`セキュリティ保護を有効にしないでください`
 
 ### SPA対策
 
@@ -590,3 +590,13 @@ npm run build
 ```
 
 CloudFrontのキャッシュを削除（`/*`）した上でAPIキーが隠せたことを確認
+
+## CloudFrontの削除方法（無料含めてプランで作成した場合）
+
+「Pay as you go」以外は即削除が出来ないので注意
+
+- まず「無効」にする
+- 「Manage Plan」で「プランをキャンセル」する
+- 月末まで削除出来ない問題（※CFを無効にすれば放置しても課金は無い）
+- 翌月「Pay as you go」に切り替わったタイミングで削除（※無効にすれば放置しても課金は無い）
+- Web ACLを必ず削除！！！放っておくと毎月$10ぐらいかかる（※月の途中で削除した場合は按分）
