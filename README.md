@@ -24,32 +24,35 @@ NotionAPIはブラウザから直接叩けない。ViteのProxyサーバー → 
 - 関数名：`get-notion-articles`
 - ランタイム：`Node.js 24.x`
 
+### 前回の補足
+
+前回、NotionAPIへのリクエストの書き方が少し古いものだった（[公式のアナウンス](https://developers.notion.com/guides/get-started/upgrade-faqs-2025-09-03#how-long-will-the-2022-06-28-version-continue-to-work)）ため、最新のものに変更
+
+```
+// 旧（2022-06-28）
+https://api.notion.com/v1/databases/{データベースID}/query
+```
+
+↓ 2ステップに変更
+
+```
+// 新（2026-03-11）
+// 1. データソースIDを取得
+https://api.notion.com/v1/databases/{データベースID}
+// 2. 記事一覧を取得
+https://api.notion.com/v1/data_sources/{データソースID}/query
+```
+
 ### コード作成
 
 ```js
 const NOTION_API_KEY = process.env.NOTION_API_KEY;
 const NOTION_DATABASE_ID = process.env.NOTION_DATABASE_ID;
-const AWS_API_KEY = process.env.AWS_API_KEY;
 
 export const handler = async (event) => {
   try {
-    if (!NOTION_API_KEY || !NOTION_DATABASE_ID || !AWS_API_KEY) {
+    if (!NOTION_API_KEY || !NOTION_DATABASE_ID) {
       throw new Error('Missing environment variables');
-    }
-
-    // APIキーが一致しない場合は 403
-    const requestApiKey =
-      event.headers['x-api-key'] || event.headers['X-Api-Key'];
-
-    if (requestApiKey !== AWS_API_KEY) {
-      return {
-        statusCode: 403,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-        },
-        body: JSON.stringify({ message: 'Forbidden' }),
-      };
     }
 
     // ① データソースIDを取得
@@ -142,7 +145,6 @@ export const handler = async (event) => {
 - タイムアウト：`15秒`
 - 環境変数：`NOTION_DATABASE_ID`：`作成したデータベースID`
 - 環境変数：`NOTION_API_KEY`：`作成したインストールのアクセストークン`
-- 環境変数：`AWS_API_KEY`：`nekomata-code`
 
 ## 記事取得関数を作成
 
@@ -153,27 +155,11 @@ export const handler = async (event) => {
 
 ```js
 const NOTION_API_KEY = process.env.NOTION_API_KEY;
-const AWS_API_KEY = process.env.AWS_API_KEY;
 
 export const handler = async (event) => {
   try {
-    if (!NOTION_API_KEY || !AWS_API_KEY) {
+    if (!NOTION_API_KEY) {
       throw new Error('Missing environment variables');
-    }
-
-    // APIキーが一致しない場合は 403
-    const requestApiKey =
-      event.headers['x-api-key'] || event.headers['X-Api-Key'];
-
-    if (requestApiKey !== AWS_API_KEY) {
-      return {
-        statusCode: 403,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-        },
-        body: JSON.stringify({ message: 'Forbidden' }),
-      };
     }
 
     const id = event.pathParameters?.id;
@@ -258,7 +244,36 @@ export const handler = async (event) => {
 
 - タイムアウト：`15秒`
 - 環境変数：`NOTION_API_KEY`：`作成したインストールのアクセストークン`
-- 環境変数：`AWS_API_KEY`：`nekomata-code`
+
+## 認証用関数を作成
+
+- 関数名：`nekomata-code-blog-api-auth`
+- ランタイム：`Node.js 24.x`
+
+```js
+export const handler = async (event) => {
+  const API_KEY = process.env.AWS_API_KEY;
+
+  // ヘッダー取得（安全に）
+  const headers = event.headers || {};
+  const requestApiKey =
+    headers['x-api-key'] || headers['X-Api-Key'] || headers['X-API-KEY'];
+
+  // チェック
+  if (requestApiKey === API_KEY) {
+    return {
+      isAuthorized: true,
+      context: {
+        message: 'Authorized',
+      },
+    };
+  }
+
+  return {
+    isAuthorized: false,
+  };
+};
+```
 
 ## API作成
 
@@ -287,6 +302,21 @@ export const handler = async (event) => {
   - `content-type`
   - `x-api-key`
 
+### オーソライザーを作成
+
+「Authorization」→「オーソライザーを管理」タブ→「作成」
+
+- オーソライザーのタイプ：`Lambda`
+- 名前：`nekomata-code-blog-api-auth`
+- AWSリージョン：`ap-northeast-1`
+- Lambda関数：`作成した認証用関数`
+- ID ソース：`$request.header.x-api-key`
+
+## AWS SAMのテンプレート紹介
+
+- [Notion SDK](https://makenotion-notion-sdk-js.mintlify.app/introduction)でAPIリクエスト
+- JS → TS
+
 ## フロントからAPIGWにリクエストする
 
 ### 環境変数を追加
@@ -297,7 +327,7 @@ export const handler = async (event) => {
 
 ```
 VITE_AWS_API_KEY=nekomata-code
-VITE_AWS_API_DOMAIN=
+VITE_AWS_API_DOMAIN=作成したAPIGWのドメイン
 ```
 
 - HomePage.jsx
