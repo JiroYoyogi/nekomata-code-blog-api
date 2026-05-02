@@ -6,8 +6,11 @@
 
 ## Notionデータベースを作成
 
-- [前回動画動画](https://youtu.be/IoeUJG1zfr0) を参考に作成
-- [こちらのデータベース](https://second-plutonium-d8a.notion.site/34ed1056141180918c7aca46980dba9f?v=34ed1056141180708545000ca5986863)を自分のワークスペースに複製
+前回動画を参考に作成
+
+- [前回動画：YouTube](https://youtu.be/IoeUJG1zfr0)
+- [前回動画：GitHubリポジトリ](https://github.com/JiroYoyogi/nekomata-code-blog)
+- [前回動画：Notionデータベース](https://second-plutonium-d8a.notion.site/34ed1056141180918c7aca46980dba9f?v=34ed1056141180708545000ca5986863)
 
 ## フロントのコードを準備
 
