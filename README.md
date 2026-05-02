@@ -368,7 +368,7 @@ const pageMeta = pageData.meta;
 // カード作成時にメタデータを取得した処理と同じでいける
 const { title, tags, writer, date, coverImageUrl } = getMeta(pageMeta);
 
-const pageBlocks = pageData.blocks.results ?? [];
+const pageBlocks = pageData.blocks ?? [];
 ```
 
 ## S3 + CloudFrontで配信する
