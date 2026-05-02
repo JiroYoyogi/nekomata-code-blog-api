@@ -245,26 +245,6 @@ export const handler = async (event) => {
 - タイムアウト：`15秒`
 - 環境変数：`NOTION_API_KEY`：`作成したインストールのアクセストークン`
 
-## 認証用関数を作成
-
-- 関数名：`nekomata-code-blog-api-auth`
-- ランタイム：`Node.js 24.x`
-
-```js
-export const handler = async (event) => {
-  const API_KEY = process.env.AWS_API_KEY;
-
-  // ヘッダー取得（安全に）
-  const headers = event.headers || {};
-  const requestApiKey =
-    headers['x-api-key'] || headers['X-Api-Key'] || headers['X-API-KEY'];
-
-  return {
-    isAuthorized: requestApiKey === API_KEY,
-  };
-};
-```
-
 ## API作成
 
 - APIタイプを選択：`HTTP API`
@@ -292,16 +272,6 @@ export const handler = async (event) => {
   - `content-type`
   - `x-api-key`
 
-### オーソライザーを作成
-
-「Authorization」→「オーソライザーを管理」タブ→「作成」
-
-- オーソライザーのタイプ：`Lambda`
-- 名前：`nekomata-code-blog-api-auth`
-- AWSリージョン：`ap-northeast-1`
-- Lambda関数：`作成した認証用関数`
-- ID ソース：`$request.header.x-api-key`
-
 ## AWS SAMのテンプレート紹介
 
 【差分】
@@ -325,7 +295,6 @@ AWS Region：ap-northeast-1
 Stage：dev （stgやprdなどでもOK）
 NotionDatabaseId：該当のNotionデータベースID
 NotionApiKey：作成したアクセストークン
-AwsApiKey：nekomata-code
 ```
 
 ## フロントからAPIGWにリクエストする
@@ -337,7 +306,6 @@ AwsApiKey：nekomata-code
 下記で置き換える（VITE_NOTION_API_KEYとVITE_NOTION_DATA_SOURCE_IDは以降不要）
 
 ```
-VITE_AWS_API_KEY=nekomata-code
 VITE_AWS_API_DOMAIN=作成したAPIGWのドメイン
 ```
 
@@ -349,11 +317,7 @@ APIリクエストを下記に置き換える
 const API_DOMAIN = import.meta.env.VITE_AWS_API_DOMAIN;
 
 // 1度に100件まで
-const response = await fetch(`${API_DOMAIN}/api/articles`, {
-  headers: {
-    'x-api-key': import.meta.env.VITE_AWS_API_KEY,
-  },
-});
+const response = await fetch(`${API_DOMAIN}/api/articles`);
 
 if (!response.ok) {
   const text = await response.text();
@@ -370,11 +334,7 @@ APIリクエストを下記に置き換える
 ```jsx
 const API_DOMAIN = import.meta.env.VITE_AWS_API_DOMAIN;
 
-const response = await fetch(`${API_DOMAIN}/api/articles?tag=${tagName}`, {
-  headers: {
-    'x-api-key': import.meta.env.VITE_AWS_API_KEY,
-  },
-});
+const response = await fetch(`${API_DOMAIN}/api/articles?tag=${tagName}`);
 
 if (!response.ok) {
   const text = await response.text();
@@ -392,11 +352,7 @@ APIリクエストを下記に置き換える
 const API_DOMAIN = import.meta.env.VITE_AWS_API_DOMAIN;
 
 // 1度に100件まで
-const response = await fetch(`${API_DOMAIN}/api/articles/${id}`, {
-  headers: {
-    'x-api-key': import.meta.env.VITE_AWS_API_KEY,
-  },
-});
+const response = await fetch(`${API_DOMAIN}/api/articles/${id}`);
 
 if (!response.ok) {
   const text = await response.text();
@@ -438,7 +394,6 @@ npm run build
 
 どれをを選択しても同じ設定画面に進む。無料プラン・ProプランはWAF（IP制限機能・DDoS対策など）が無料で付く。
 しかし、削除手順が煩雑（月末まで削除出来ない・WebACLを手動で削除）。お試しなら「Pay as you go」が迷わない。
-
 ```
 
 - Distribution name：`nekomata-code-blog`
@@ -496,7 +451,14 @@ function handler(event) {
 - キャッシュビヘイビア：Default（*）
 ```
 
-## APIキーを隠す
+## APIGWの前にCloudFrontを置く
+
+特に個人開発ならばここまでやらないでも良いが、ちゃんと作ってる感が一段上がる
+
+- サイトとAPIのドメインを同じに出来る
+- CORS禁止に出来る
+- WAFを付ける場合WAFで守れる
+- etc
 
 ### オリジンを追加
 
@@ -504,12 +466,6 @@ function handler(event) {
 
 - Origin domain：`作成したAPIを選択`
 - Origin path - optional：`/api`
-- カスタムヘッダーを追加
-
-```
-- ヘッダー名：x-api-key
-- 値：nekomata-code
-```
 
 ### ビヘイビアを追加
 
@@ -518,16 +474,23 @@ function handler(event) {
 - パスパターン：`/api/*`
 - オリジンとオリジングループ：`作成したAPIを選択`
 
+### APIGWでCORSを禁止
+
+下記を削除してCORSを禁止する。SAMを使っている場合は該当箇所を削除して再ビルド・デプロイする
+
+```
+Access-Control-Allow-Origin：`*`
+```
+
 ### ReactからのAPIリクエストのパスを変更
 
 - `/api（ドメイン無し）`でリクエスト出来るようにしたい
-- APIキーをリクエストから削除したい
 
 #### /api（ドメイン無し）でリクエスト出来るようにしたい
 
 - vite.config.js
 
-プロキシの設定を追加。本番では`/api`、ローカル開発環境からも`/api`だがプロキシ経由のAPIリクエストになる。APIキーについては、本番ではCloudFrontの設定で付与が不要。しかし、ローカル開発環境でアプリを立ち上げる場合には、付与したい。
+プロキシの設定を追加。本番では`/api`、ローカル開発環境からも`/api`だがプロキシ経由のAPIリクエストになる
 
 ```js
 import { defineConfig, loadEnv } from 'vite';
@@ -555,9 +518,6 @@ export default defineConfig(({ mode }) => {
         '/api': {
           target: env.VITE_AWS_API_DOMAIN,
           changeOrigin: true,
-          headers: {
-            'x-api-key': env.VITE_AWS_API_KEY,
-          },
         },
       },
     },
