@@ -4,6 +4,12 @@
 - AWSアカウント
 - Notionアカウント
 
+> [!TIP]
+> **APIとは？APIGateway？Lambda？という方へ**
+> 動画ではAWSでAPIの作成を行います。もし「APIとは何か？」不安がある方は、下記動画を先にご覧いただくと理解がスムーズになります。実際にAWSでAPIを作りながら解説した動画を用意しています。
+>
+> - [【API入門講座】AWSとJavaScriptで作るAPI開発の基本](https://youtu.be/ciHyDG6JAIQ)
+
 ## Notionデータベースを作成
 
 前回動画を参考に作成
